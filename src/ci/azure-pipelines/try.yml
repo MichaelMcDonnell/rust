@@ -6,17 +6,17 @@ variables:
 - group: prod-credentials
 
 jobs:
-- job: Linux
-  timeoutInMinutes: 600
-  pool:
-    vmImage: ubuntu-16.04
-  steps:
-  - template: steps/run.yml
-  strategy:
-    matrix:
-      dist-x86_64-linux: {}
-      dist-x86_64-linux-alt:
-        IMAGE: dist-x86_64-linux
+    # - job: Linux
+    #   timeoutInMinutes: 600
+    #   pool:
+    #     vmImage: ubuntu-16.04
+    #   steps:
+    #   - template: steps/run.yml
+    #   strategy:
+    #     matrix:
+    #       dist-x86_64-linux: {}
+    #       dist-x86_64-linux-alt:
+    #         IMAGE: dist-x86_64-linux
 
 # The macOS and Windows builds here are currently disabled due to them not being
 # overly necessary on `try` builds. We also don't actually have anything that
@@ -62,7 +62,7 @@ jobs:
         SCRIPT: make ci-mingw-subset-2
         CUSTOM_MINGW: 1
       dist-i686-mingw:
-        RUST_CONFIGURE_ARGS: --build=i686-pc-windows-gnu --enable-full-tools --enable-profiler
+        RUST_CONFIGURE_ARGS: --build=i686-pc-windows-gnu --enable-debug-assertions --enable-optimize --debuginfo-level=1
         SCRIPT: python x.py dist
         CUSTOM_MINGW: 1
-        DIST_REQUIRE_ALL_TOOLS: 1
+        N_DIST_REQUIRE_ALL_TOOLS: 1
