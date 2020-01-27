@@ -28,6 +28,8 @@
 #![feature(abi_thiscall)]
 #![feature(rustc_attrs)]
 #![feature(raw)]
+#![feature(asm)]
+#![feature(naked_functions)]
 #![panic_runtime]
 #![feature(panic_runtime)]
 

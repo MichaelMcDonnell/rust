@@ -332,8 +332,13 @@ unsafe fn find_eh_action(
 ))]
 #[lang = "eh_unwind_resume"]
 #[unwind(allowed)]
-unsafe extern "C" fn rust_eh_unwind_resume(panic_ctx: *mut u8) -> ! {
-    uw::_Unwind_Resume(panic_ctx as *mut uw::_Unwind_Exception);
+#[naked]
+unsafe extern "C" fn rust_eh_unwind_resume(_panic_ctx: *mut u8) -> ! {
+    // This needs to be a naked function because _Unwind_Resume expects to be
+    // called directly from the landing pad. This means that we need to force
+    // a tail call here.
+    asm!("jmp ${0:P}" :: "s" (uw::_Unwind_Resume as usize) :: "volatile");
+    core::hint::unreachable_unchecked();
 }
 
 // Frame unwind info registration
