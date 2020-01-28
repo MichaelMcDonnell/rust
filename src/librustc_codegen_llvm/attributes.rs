@@ -245,12 +245,23 @@ pub fn from_fn_attrs(
         }
     }
 
-    // FIXME(eddyb) consolidate these two `inline` calls (and avoid overwrites).
-    if instance.def.requires_inline(cx.tcx) {
-        inline(cx, llfn, attributes::InlineAttr::Hint);
-    }
+    // Naked functions must never be inlined and must not contain any prologue
+    // or epilogue.
+    if codegen_fn_attrs.flags.contains(CodegenFnAttrFlags::NAKED) {
+        naked(llfn, true);
+        inline(cx, llfn, attributes::InlineAttr::Never);
+    } else {
+        set_frame_pointer_elimination(cx, llfn);
+        set_instrument_function(cx, llfn);
+        set_probestack(cx, llfn);
 
-    inline(cx, llfn, codegen_fn_attrs.inline);
+        // FIXME(eddyb) consolidate these two `inline` calls (and avoid overwrites).
+        if instance.def.requires_inline(cx.tcx) {
+            inline(cx, llfn, attributes::InlineAttr::Hint);
+        }
+
+        inline(cx, llfn, codegen_fn_attrs.inline);
+    }
 
     // The `uwtable` attribute according to LLVM is:
     //
@@ -272,18 +283,11 @@ pub fn from_fn_attrs(
         attributes::emit_uwtable(llfn, true);
     }
 
-    set_frame_pointer_elimination(cx, llfn);
-    set_instrument_function(cx, llfn);
-    set_probestack(cx, llfn);
-
     if codegen_fn_attrs.flags.contains(CodegenFnAttrFlags::COLD) {
         Attribute::Cold.apply_llfn(Function, llfn);
     }
     if codegen_fn_attrs.flags.contains(CodegenFnAttrFlags::FFI_RETURNS_TWICE) {
         Attribute::ReturnsTwice.apply_llfn(Function, llfn);
-    }
-    if codegen_fn_attrs.flags.contains(CodegenFnAttrFlags::NAKED) {
-        naked(llfn, true);
     }
     if codegen_fn_attrs.flags.contains(CodegenFnAttrFlags::ALLOCATOR) {
         Attribute::NoAlias.apply_llfn(llvm::AttributePlace::ReturnValue, llfn);
