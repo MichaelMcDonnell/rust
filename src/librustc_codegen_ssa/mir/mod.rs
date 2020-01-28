@@ -1,5 +1,6 @@
 use crate::base;
 use crate::traits::*;
+use rustc::middle::codegen_fn_attrs::CodegenFnAttrFlags;
 use rustc::mir;
 use rustc::ty::layout::{FnAbiExt, HasTyCtxt, TyLayout};
 use rustc::ty::{self, Instance, Ty, TypeFoldable};
@@ -338,12 +339,24 @@ fn arg_local_refs<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>>(
     let mir = fx.mir;
     let mut idx = 0;
     let mut llarg_idx = fx.fn_abi.ret.is_indirect() as usize;
+    let codegen_fn_attrs = fx.cx.tcx().codegen_fn_attrs(fx.instance.def_id());
 
     let args = mir
         .args_iter()
         .enumerate()
         .map(|(arg_index, local)| {
             let arg_decl = &mir.local_decls[local];
+
+            // Naked functions can't contain an alloca. This is a horrible hack,
+            // but at least it makes naked functions with arguments work
+            // correctly in debug build (they won't corrupt the stack any more).
+            if codegen_fn_attrs.flags.contains(CodegenFnAttrFlags::NAKED) {
+                let layout = bx.layout_of(arg_decl.ty);
+                return LocalRef::Place(PlaceRef::new_sized(
+                    bx.const_undef(bx.cx().backend_type(layout)),
+                    layout,
+                ));
+            }
 
             if Some(local) == mir.spread_arg {
                 // This argument (e.g., the last argument in the "rust-call" ABI)
