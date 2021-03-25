@@ -1535,6 +1535,44 @@ impl<'a> Formatter<'a> {
         write(self.buf, fmt)
     }
 
+    /// Writes an iterator of values separated by a separator string.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// #![feature(write_iter)]
+    /// use std::fmt;
+    ///
+    /// struct Foo(Vec<i32>);
+    ///
+    /// impl fmt::Display for Foo {
+    ///     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    ///         formatter.write_iter(self.0.iter(), "; ")
+    ///     }
+    /// }
+    ///
+    /// assert_eq!(&format!("{}", Foo(vec![1, 2, 3])), "1; 2; 3");
+    /// ```
+    #[unstable(feature = "write_iter", reason = "recently added", issue = "123456789")] // FIXME: Replace issue number
+    pub fn write_iter<D, I>(&mut self, mut iter: I, separator: &str) -> Result
+    where
+        D: Debug,
+        I: Iterator<Item = D>,
+    {
+        // FIXME: Use Display or Debug? Maybe calling the function write_iter is not good?
+        //        Maybe it should be write_display_iter and write_debug_iter?
+
+        if let Some(item) = iter.next() {
+            write(self.buf, format_args!("{:?}", item))?;
+
+            for item in iter {
+                write(self.buf, format_args!("{}{:?}", separator, item))?;
+            }
+        }
+
+        Ok(())
+    }
+
     /// Flags for formatting
     #[stable(feature = "rust1", since = "1.0.0")]
     #[rustc_deprecated(

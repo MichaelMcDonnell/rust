@@ -2,6 +2,8 @@ mod builders;
 mod float;
 mod num;
 
+use core::fmt;
+
 #[test]
 fn test_format_flags() {
     // No residual flags left by pointer formatting
@@ -42,4 +44,17 @@ fn pad_integral_resets() {
     }
 
     assert_eq!(format!("{:<03}", Bar), "1  0051  ");
+}
+
+#[test]
+fn test_write_iter() {
+    struct Foo(Vec<i32>);
+
+    impl fmt::Display for Foo {
+        fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+            formatter.write_iter(self.0.iter(), "; ")
+        }
+    }
+
+    assert_eq!(&format!("{}", Foo(vec![1, 2, 3])), "1; 2; 3");
 }
